@@ -9,7 +9,7 @@ export const authApi = {
 
   getMe: () => api.get("/users/me"),
 
-  changePassword: (data: { current_password: string; new_password: string }) =>
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put("/users/me/password", data),
 };
 
