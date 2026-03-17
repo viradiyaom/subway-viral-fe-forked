@@ -17,17 +17,13 @@ const paddingMap = {
 };
 
 /** Generic white card wrapper */
-export const Card = ({
-  children,
-  className,
-  padding = "md",
-}: CardProps) => {
+export const Card = ({ children, className, padding = "md" }: CardProps) => {
   return (
     <div
       className={cn(
         "bg-white rounded-xl shadow-card border border-slate-100 transition-shadow duration-200 hover:shadow-card-hover",
         paddingMap[padding],
-        className
+        className,
       )}
     >
       {children}
@@ -74,8 +70,8 @@ export const StatCard = ({
     changeType === "up"
       ? TrendingUp
       : changeType === "down"
-      ? TrendingDown
-      : Minus;
+        ? TrendingDown
+        : Minus;
 
   return (
     <div className="stat-card animate-fade-in-up">
@@ -85,16 +81,9 @@ export const StatCard = ({
             {title}
           </p>
           <p className="text-2xl font-bold text-primary-900 mt-0.5">{value}</p>
-          {subtitle && (
-            <p className="text-xs text-slate-400">{subtitle}</p>
-          )}
+          {subtitle && <p className="text-xs text-slate-400">{subtitle}</p>}
         </div>
-        <div
-          className={cn(
-            "p-3 rounded-xl",
-            variantIconBg[variant]
-          )}
-        >
+        <div className={cn("p-3 rounded-xl", variantIconBg[variant])}>
           {icon}
         </div>
       </div>
@@ -102,7 +91,7 @@ export const StatCard = ({
         <div
           className={cn(
             "flex items-center gap-1 mt-3 text-xs font-medium",
-            changeColors[changeType]
+            changeColors[changeType],
           )}
         >
           <ChangeIcon size={13} />

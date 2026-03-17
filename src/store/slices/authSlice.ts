@@ -6,14 +6,14 @@ import { isTokenExpired } from "../../utils";
 // ─── Rehydrate from localStorage ──────────────────────────────────────────────
 
 const storedToken = localStorage.getItem("auth_token");
+const storedUser = JSON.parse(localStorage.getItem("auth_user") || "{}");
 const isValid = storedToken ? !isTokenExpired(storedToken) : false;
 
 const initialState: AuthState = {
   token: isValid ? storedToken : null,
-  user: null,
+  user: isValid ? storedUser : null,
   isAuthenticated: isValid,
   isLoading: false,
-  error: null,
 };
 
 // ─── Slice ────────────────────────────────────────────────────────────────────
@@ -28,8 +28,8 @@ const authSlice = createSlice({
     ) => {
       state.token = action.payload.token;
       state.user = action.payload.user;
-      state.error = null;
       localStorage.setItem("auth_token", action.payload.token);
+      localStorage.setItem("auth_user", JSON.stringify(action.payload.user));
     },
     setAuthenticated: (state, action: PayloadAction<boolean>) => {
       state.isAuthenticated = action.payload;
@@ -40,25 +40,15 @@ const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
-    setError: (state, action: PayloadAction<string | null>) => {
-      state.error = action.payload;
-    },
     logout: (state) => {
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;
-      state.error = null;
       localStorage.removeItem("auth_token");
     },
   },
 });
 
-export const {
-  setCredentials,
-  setUser,
-  setAuthenticated,
-  setLoading,
-  setError,
-  logout,
-} = authSlice.actions;
+export const { setCredentials, setUser, setAuthenticated, setLoading, logout } =
+  authSlice.actions;
 export default authSlice.reducer;

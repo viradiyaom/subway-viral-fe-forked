@@ -1,30 +1,34 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Store, AlertCircle } from "lucide-react";
+import { Mail, Lock, Store } from "lucide-react";
+import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "../../store";
 import {
   setCredentials,
   setLoading,
-  setError,
   setAuthenticated,
 } from "../../store/slices/authSlice";
 import { authApi } from "../../config/apiCall";
-import type { LoginCredentials, LoginResponse } from "../../utils/types";
-import { ROUTES } from "../../utils/routes";
+import { UserRole, type LoginCredentials } from "../../utils/types";
 import { ENV } from "../../utils/constants";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "../../utils/routes";
 
+type FinalLoginCredentials =
+  | (LoginCredentials & {
+      role: string;
+    })
+  | null;
 const LoginPage = () => {
-  const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error, isAuthenticated } = useAppSelector(
-    ({ auth }) => auth,
-  );
+  const dispatch = useAppDispatch();
+  const { isLoading } = useAppSelector(({ auth }) => auth);
+  console.log("🚀 - LoginPage - isLoading:", isLoading);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [tempCredentials, setTempCredentials] =
-    useState<LoginCredentials | null>(null);
+    useState<FinalLoginCredentials>(null);
 
   // ─── react-hook-form ────────────────────────────────────────────────────────
   const {
@@ -35,8 +39,8 @@ const LoginPage = () => {
     formState: { errors },
   } = useForm<any>({
     defaultValues: {
-      email: "admin@org.com",
-      password: "Admin@1234",
+      email: "staff@org.com",
+      password: "Demo@123",
       newPassword: "",
       confirmPassword: "",
     },
@@ -45,62 +49,65 @@ const LoginPage = () => {
 
   const newPassword = watch("newPassword");
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (isAuthenticated && !isChangingPassword) {
-      navigate(ROUTES.DASHBOARD, { replace: true });
-    }
-  }, [isAuthenticated, isChangingPassword, navigate]);
-
-  // Reset error on unmount
-  useEffect(() => {
-    return () => {
-      dispatch(setError(null));
-    };
-  }, [dispatch]);
-
   // ─── Submit handler ──────────────────────────────────────────────────────────
   const onSubmit = (data: any) => {
     dispatch(setLoading(true));
-    dispatch(setError(null));
 
     if (!isChangingPassword) {
-      setTempCredentials({ email: data.email, password: data.password });
       authApi
         .login({ email: data.email, password: data.password })
-        .then(({ data }) => {
-          dispatch(setCredentials({ token: data.token, user: data.user }));
-          if (data.must_change_password) {
+        .then((res) => {
+          const response = res.data.data;
+          const role = response.user.role.role_name;
+
+          if (response.must_change_password) {
+            setTempCredentials({
+              email: data.email,
+              password: data.password,
+              role,
+            });
+
             setIsChangingPassword(true);
             reset({ newPassword: "", confirmPassword: "" });
           } else {
-            navigate(ROUTES.DASHBOARD, { replace: true });
             dispatch(setAuthenticated(true));
+
+            dispatch(
+              setCredentials({ token: response.token, user: response.user }),
+            );
+            navigate("/");
           }
         })
-        .catch((err: { response?: { data?: { message?: string } } }) => {
-          const message =
-            err.response?.data?.message ?? "Login failed. Please try again.";
-          dispatch(setError(message));
+        .catch((err: Error) => {
+          toast.error(err.message);
         })
         .finally(() => {
           dispatch(setLoading(false));
         });
     } else {
-      // Step 2: Password Change
       authApi
         .changePassword({
           currentPassword: tempCredentials?.password || "",
           newPassword: data.newPassword,
         })
-        .then(() => {
+        .then(({ data }) => {
           dispatch(setAuthenticated(true));
-          navigate(ROUTES.DASHBOARD, { replace: true });
+
+          const role = tempCredentials?.role;
+          if (role === UserRole.ADMIN) {
+            navigate(ROUTES.ADMIN.DASHBOARD);
+          } else if (role === UserRole.MANAGER) {
+            navigate(ROUTES.MANAGER.DASHBOARD);
+          } else if (role === UserRole.SUB_MANAGER) {
+            navigate(ROUTES.SUB_MANAGER.DASHBOARD);
+          } else if (role === UserRole.STAFF) {
+            navigate(ROUTES.STAFF.DASHBOARD);
+          }
+
+          dispatch(setCredentials({ token: data.token, user: data.user }));
         })
-        .catch((err: { response?: { data?: { message?: string } } }) => {
-          const message =
-            err.response?.data?.message ?? "Failed to change password.";
-          dispatch(setError(message));
+        .catch((err: Error) => {
+          toast.error(err.message);
         })
         .finally(() => {
           dispatch(setLoading(false));
@@ -141,14 +148,6 @@ const LoginPage = () => {
             {isChangingPassword ? "Security Update" : "Welcome back"}
           </h2>
 
-          {/* API-level error */}
-          {error && (
-            <div className="flex items-start gap-3 p-3.5 rounded-lg bg-danger-50 border border-danger-100 text-danger-600 text-sm mb-5 animate-fade-in">
-              <AlertCircle size={16} className="mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
           <form
             onSubmit={handleSubmit(onSubmit)}
             noValidate
@@ -164,7 +163,7 @@ const LoginPage = () => {
                   placeholder="you@example.com"
                   autoComplete="email"
                   leftIcon={<Mail size={15} />}
-                  error={errors.email?.message}
+                  error={errors.email?.message as string}
                   {...register("email", {
                     required: "Email is required",
                     pattern: {
@@ -182,7 +181,7 @@ const LoginPage = () => {
                   placeholder="••••••••"
                   autoComplete="current-password"
                   leftIcon={<Lock size={15} />}
-                  error={errors.password?.message}
+                  error={errors.password?.message as string}
                   {...register("password", {
                     required: "Password is required",
                     minLength: {
@@ -205,7 +204,7 @@ const LoginPage = () => {
                   type="password"
                   placeholder="••••••••"
                   leftIcon={<Lock size={15} />}
-                  error={errors.newPassword?.message}
+                  error={errors.newPassword?.message as string}
                   {...register("newPassword", {
                     required: "New password is required",
                     minLength: {
@@ -222,7 +221,7 @@ const LoginPage = () => {
                   type="password"
                   placeholder="••••••••"
                   leftIcon={<Lock size={15} />}
-                  error={errors.confirmPassword?.message}
+                  error={errors.confirmPassword?.message as string}
                   {...register("confirmPassword", {
                     required: "Please confirm your password",
                     validate: (value: string) =>

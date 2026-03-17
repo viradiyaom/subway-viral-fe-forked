@@ -18,10 +18,12 @@ api.interceptors.request.use(
     const token = localStorage.getItem("auth_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+
+      config.headers["x-device-id"] = "testr123";
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // ─── Response Interceptor ─────────────────────────────────────────────────────
@@ -34,8 +36,16 @@ api.interceptors.response.use(
       localStorage.removeItem("auth_token");
       window.location.href = "/login";
     }
+
+    // Extract message for err.message usage throughout the app
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "An unexpected error occurred";
+    error.message = message;
+
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

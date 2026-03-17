@@ -20,18 +20,43 @@ export interface Permissions {
 
 export interface Role {
   _id: string;
-  name: string;
+  name: UserRole | string;
   permissions: Permissions;
 }
 
+export enum UserRole {
+  ADMIN = "Admin",
+  MANAGER = "Manager",
+  SUB_MANAGER = "Sub-manager",
+  STAFF = "Staff",
+  ROOT = "Root",
+}
+
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
-  role_id: Role;
-  assigned_shop_ids: string[];
-  must_change_password: boolean;
-  avatar?: string;
+  role: Role;
+  shop_id: string;
+}
+
+export interface Role {
+  _id: string;
+  role_name: string;
+  permissions: Permissions;
+  __v: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Permissions {
+  can_create_users: boolean;
+  can_view_all_staff: boolean;
+  can_manage_rotas: boolean;
+  can_manual_punch: boolean;
+  can_manage_inventory: boolean;
+  can_manage_shops: boolean;
+  can_manage_roles: boolean;
 }
 
 export interface AuthState {
@@ -39,7 +64,6 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  error: string | null;
 }
 
 // ─── API ─────────────────────────────────────────────────────────────────────
@@ -58,24 +82,15 @@ export interface LoginResponse {
 
 // ─── UI ──────────────────────────────────────────────────────────────────────
 
-export type StatCardVariant = "default" | "success" | "warning" | "danger" | "info";
-
-export interface StatCardData {
-  title: string;
-  value: string | number;
-  change?: string;
-  changeType?: "up" | "down" | "neutral";
-  variant?: StatCardVariant;
-  icon?: React.ElementType;
-}
-
-export interface NavItem {
-  label: string;
-  path: string;
-  icon: React.ElementType;
-  permission?: keyof Permissions;
-}
+// (Unused UI types removed)
 
 // ─── Common ──────────────────────────────────────────────────────────────────
 
 export type SidebarState = "expanded" | "collapsed";
+
+export type StatCardVariant =
+  | "default"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
